@@ -58,7 +58,27 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/optimize", optimizeRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// Centralized 404 Handler
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, "../dist");
+
+// Serve built frontend assets if present (for single-service deployment like Render)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  
+  app.get("*", (req, res, next) => {
+    if (req.originalUrl.startsWith("/api") || req.originalUrl.startsWith("/socket.io")) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
+// Centralized 404 Handler for API routes
 app.use((req, res) => {
   res.status(404).json({
     success: false,
